@@ -1,0 +1,102 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 8d7eb403f5a9261bc4e3e3ced25af7b1e3f28ae47ec9f8ae68e3cb750807e3d3
+
+name:           budget-server
+version:        0.1.0.0
+category:       Web
+homepage:       https://github.com/githubuser/budget-server#readme
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2019 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+library
+  exposed-modules:
+      Api
+      BusinessLogic
+      Db
+      DevelMain
+      Init
+      Types
+      Utils
+  other-modules:
+      Paths_budget_server
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Werror
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , foreign-store
+    , mtl
+    , quickcheck-instances
+    , raw-strings-qq
+    , scientific
+    , servant-server
+    , sqlite-simple
+    , text
+    , time
+    , wai
+    , warp
+  default-language: Haskell2010
+
+executable budget-server-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_budget_server
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Werror
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , budget-server
+    , foreign-store
+    , mtl
+    , quickcheck-instances
+    , raw-strings-qq
+    , scientific
+    , servant-server
+    , sqlite-simple
+    , text
+    , time
+    , wai
+    , warp
+  default-language: Haskell2010
+
+test-suite budget-server-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_budget_server
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Werror
+  build-depends:
+      QuickCheck
+    , aeson
+    , base >=4.7 && <5
+    , budget-server
+    , foreign-store
+    , mtl
+    , quickcheck-instances
+    , raw-strings-qq
+    , scientific
+    , servant-server
+    , sqlite-simple
+    , text
+    , time
+    , wai
+    , warp
+  default-language: Haskell2010

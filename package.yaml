@@ -1,0 +1,48 @@
+name:                budget-server
+version:             0.1.0.0
+#synopsis:
+#description:
+homepage:            https://github.com/githubuser/budget-server#readme
+license:             BSD3
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2019 Author name here
+category:            Web
+extra-source-files:
+- README.md
+
+dependencies:
+  - base >= 4.7 && < 5
+  - servant-server
+  - aeson
+  - text
+  - time
+  - QuickCheck
+  - quickcheck-instances
+  - mtl
+  - wai
+  - warp
+  - sqlite-simple
+  - raw-strings-qq
+  - scientific
+  - foreign-store
+
+ghc-options:
+  - -Wall
+  - -Werror
+
+library:
+  source-dirs: src
+
+executables:
+  budget-server-exe:
+    source-dirs:      app
+    main:             Main.hs
+    dependencies:     budget-server
+
+tests:
+  budget-server-test:
+    main: Spec.hs
+    source-dirs: test
+    dependencies:
+      budget-server
