@@ -29,7 +29,8 @@ instance Monad Db where
 
 -- Helper functions                             
 executeDb :: MonadIO m => Db a -> DbConfiguration -> m a
-executeDb db (DbConfiguration path t) = liftIO $ withConnection path $ runDb (tracing t >> db)
+executeDb db (DbConfiguration path t) = 
+  liftIO $ withConnection path (\conn -> withTransaction conn (runDb (tracing t >> db) conn))
 
 executeQuery_ :: FromRow a => Query -> Db [a]
 executeQuery_ q = Db $ \conn -> query_ conn q
@@ -58,11 +59,22 @@ createTemplatesTable =
                  ,frequency TEXT
                  ,isDeleted INTEGER ) |]
 
+createInstancesTable :: Db ()
+createInstancesTable =
+  executeCommand_ [r| CREATE TABLE IF NOT EXISTS instances (
+                  originalTemplateId INTEGER
+                 ,description TEXT
+                 ,amount REAL
+                 ,date TEXT
+                 ,type TEXT
+                 ,FOREIGN KEY(originalTemplateId) REFERENCES templates(templateId)) |]
+                 
+
 getLastRecordId :: Db Int64
 getLastRecordId = Db lastInsertRowId
 
-insertTemplate :: Template -> Db ()
-insertTemplate Template{..} = 
+insertTemplate :: Template -> Db TemplateId
+insertTemplate Template{..} = do
   executeCommand [r|  INSERT INTO templates (
                        description
                       ,amount
@@ -70,18 +82,16 @@ insertTemplate Template{..} =
                       ,frequency
                       ,isDeleted)
                     VALUES(?, ?, ?, ?, ?) |]   
-               (_templateDescription, _templateAmount, _templateStartDate, _templateFrequency, _templateIsDeleted)  
+               (_templateDescription, _templateAmount, _templateStartDate, _templateFrequency, _templateIsDeleted) 
+  TemplateId <$> getLastRecordId 
 
-updateTemplate :: TemplateId -> Template -> Db ()
-updateTemplate (TemplateId tId) Template{..} = 
+updateTemplate :: TemplateId -> TemplateUpdateRequest -> Db ()
+updateTemplate (TemplateId tId) (TemplateUpdateRequest (des, amt)) = 
   executeCommand [r| UPDATE templates
                    SET  description = ? 
                        ,amount = ? 
-                       ,startDate = ?
-                       ,frequency = ?
-                       ,isDeleted = ?
                    WHERE templateId = ? |] 
-               (_templateDescription, _templateAmount, _templateStartDate, _templateFrequency, _templateIsDeleted, tId)
+               (des, amt, tId)
 
 deleteTemplate :: TemplateId -> Db ()
 deleteTemplate (TemplateId tId) = 
@@ -95,10 +105,16 @@ getAllTemplates = do
   res <- executeQuery_ "SELECT * FROM templates WHERE isDeleted = 0" :: Db [Only TemplateId :. Template]
   pure $ (\(Only tId :. t) -> SavedTemplate (tId, t)) <$> res 
   
+getAllInstances :: Db [Instance]
+getAllInstances = executeQuery_ "SELECT * FROM instances"
+
 instance TemplateQuery Db where
   getTemplates = getAllTemplates
 
 instance TemplateCommand Db where
-  insert t = insertTemplate t >> TemplateId <$> getLastRecordId
+  insert = insertTemplate
   update = updateTemplate
   delete = deleteTemplate
+
+instance InstanceQuery Db where
+  getInstances = getAllInstances

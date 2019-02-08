@@ -8,13 +8,13 @@ import           Servant
 import           Control.Monad.Reader
 import           Network.Wai.Handler.Warp
 import           Types
-import Db (executeDb, createTemplatesTable)
+import Db (executeDb, createTemplatesTable, createInstancesTable)
   
 
 runApp :: IO ()
 runApp = do
   let config = Config (DbConfiguration "budget.db" ConsoleTracing)
-  executeDb createTemplatesTable (_configDb config)
+  executeDb (createTemplatesTable >> createInstancesTable) (_configDb config)
   run 8081 (app1 config)
 
 api :: Proxy API

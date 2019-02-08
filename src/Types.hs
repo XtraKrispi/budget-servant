@@ -41,7 +41,20 @@ instance FromField Frequency where
 instance Arbitrary Frequency where
   arbitrary = arbitraryBoundedEnum
 
-data InstanceType = Completed | Skipped
+data InstanceType = NotActioned | Completed | Skipped
+  deriving (Show, Eq, Generic, Bounded, Enum, Read)
+
+instance ToJSON InstanceType
+instance FromJSON InstanceType
+
+instance Arbitrary InstanceType where
+  arbitrary = arbitraryBoundedEnum
+
+instance ToField InstanceType where
+  toField i = toField (show i)
+
+instance FromField InstanceType where
+  fromField = (read <$>) . fromField
 
 newtype Currency = Currency { unCurrency :: Double }
   deriving (Eq, Show, Generic)
@@ -63,12 +76,22 @@ instance Arbitrary Currency where
   arbitrary = Currency <$> arbitrary
 
 newtype TemplateId = TemplateId Int64
-  deriving (Generic)
+  deriving (Eq, Show, Generic)
 
 instance ToJSON TemplateId
 
+instance FromJSON TemplateId where
+  parseJSON (Number n) = maybe mzero (pure . TemplateId) $ toBoundedInteger n
+  parseJSON _ = mzero
+
 instance FromField TemplateId where
   fromField = (TemplateId <$>) . fromField
+
+instance ToField TemplateId where
+  toField (TemplateId tId) = toField tId
+
+instance Arbitrary TemplateId where
+  arbitrary = TemplateId <$> arbitrary
 
 data Template = Template { _templateDescription :: Text
                          , _templateAmount      :: Currency
@@ -76,7 +99,6 @@ data Template = Template { _templateDescription :: Text
                          , _templateFrequency   :: Frequency
                          , _templateIsDeleted   :: Bool }
   deriving (Eq, Show, Generic)
-
 
 instance ToJSON Template where
   toEncoding =
@@ -109,17 +131,22 @@ instance Arbitrary Template where
                        <*> arbitrary
                        <*> arbitrary
 
-newtype SavedTemplate = SavedTemplate (TemplateId, Template)
+newtype SavedTemplate = SavedTemplate { extractSavedTemplate :: (TemplateId, Template) }
   deriving (Generic)
 
 instance ToJSON SavedTemplate where
   toEncoding (SavedTemplate (tId, t)) =
     pairs ("templateId" .= tId <> "template" .= t)
 
-data Instance = Instance { _instanceDescription :: Text
-                         , _instanceAmount      :: Currency
-                         , _instanceDate        :: Day }
-  deriving (Eq, Show, Generic)
+data Instance = Instance { _instanceOriginalTemplateId :: TemplateId
+                         , _instanceDescription        :: Text
+                         , _instanceAmount             :: Currency
+                         , _instanceType               :: InstanceType
+                         , _instanceDate               :: Day }
+  deriving (Show, Generic)
+
+instance Eq Instance where
+  i1 == i2 = (_instanceOriginalTemplateId i1 == _instanceOriginalTemplateId i2) && (_instanceDate i1 == _instanceDate i2) 
 
 instance ToJSON Instance where
   toEncoding =
@@ -128,15 +155,31 @@ instance ToJSON Instance where
 
 instance FromJSON Instance where
   parseJSON (Object v) =
-    Instance <$> v .: "description"
+    Instance <$> v .: "originalTemplateId"
+             <*> v .: "description"
              <*> v .: "amount"
+             <*> v .: "type"
              <*> v .: "date"
+             
   parseJSON _ = mzero
 
 instance Arbitrary Instance where
   arbitrary = Instance <$> arbitrary
                        <*> arbitrary
                        <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+
+instance FromRow Instance where
+  fromRow = Instance <$> field
+                     <*> field
+                     <*> field
+                     <*> field
+                     <*> field
+
+instance ToRow Instance where
+  toRow Instance{..} =
+    toRow (_instanceOriginalTemplateId, _instanceDescription,  _instanceAmount, _instanceDate, _instanceType) 
 
 data DbTracingOptions = NoTracing | ConsoleTracing
 
@@ -152,16 +195,26 @@ newtype AppT m a
 
 type App = AppT Handler
 
+newtype TemplateUpdateRequest = 
+  TemplateUpdateRequest { unTemplateUpdateRequest :: (Text, Currency) }
+  deriving (Generic)
+
+instance FromJSON TemplateUpdateRequest where
+  parseJSON (Object v) =
+       curry TemplateUpdateRequest <$> v .: "description"
+                                   <*> v .: "amount"
+  parseJSON _ = mzero
+
 class TemplateQuery m where
   getTemplates :: m [SavedTemplate]
 
 class TemplateCommand m where
   insert :: Template -> m TemplateId
-  update :: TemplateId -> Template -> m ()
+  update :: TemplateId -> TemplateUpdateRequest -> m ()
   delete :: TemplateId -> m ()
 
 class InstanceQuery m where
-  getInstances :: Day -> Day -> m [Instance]
+  getInstances :: m [Instance]
 
 class InstanceCommand m where
   updateInstance :: InstanceType -> Instance -> m ()

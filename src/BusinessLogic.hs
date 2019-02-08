@@ -3,26 +3,24 @@ module BusinessLogic where
 
 import           Types
 import           Data.Time.Calendar
+import qualified Data.List                     as L
 
-getTemplates :: TemplateQuery m => m [SavedTemplate]
-getTemplates = Types.getTemplates
+getInstances :: Day -> [Instance] -> [SavedTemplate] -> [Instance]
+getInstances e = convert  
+  where
+    convert dbInstances =
+          filter (`notElem` dbInstances)
+        . L.sortBy (\i1 i2 -> compare (_instanceDate i1) (_instanceDate i2))
+        . concatMap (uncurry (getInstances' e) . extractSavedTemplate)
 
-insertTemplate :: TemplateCommand m => Template -> m TemplateId
-insertTemplate = insert
 
-updateTemplate :: TemplateCommand m => TemplateId -> Template -> m ()
-updateTemplate = update
-
-deleteTemplate :: TemplateCommand m => TemplateId -> m ()
-deleteTemplate = delete
-
-getInstances :: Template -> [Instance]
-getInstances Template {..} =
-  Instance _templateDescription _templateAmount
-    <$> getDates _templateFrequency _templateStartDate
+getInstances' :: Day -> TemplateId -> Template -> [Instance]
+getInstances' e tId Template {..} =
+  Instance tId _templateDescription _templateAmount NotActioned
+    <$> takeWhile (e >=) (getDates _templateFrequency _templateStartDate)
 
 getDates :: Frequency -> Day -> [Day]
 getDates OneTime  d = pure d
 getDates BiWeekly d = d : getDates BiWeekly (addDays 14 d)
-getDates Monthly  d = 
-  uncurry addGregorianMonthsClip <$> zip [0,1..] (repeat d)
+getDates Monthly d =
+  uncurry addGregorianMonthsClip <$> zip [0, 1 ..] (repeat d)
