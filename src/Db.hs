@@ -73,8 +73,8 @@ createInstancesTable =
 getLastRecordId :: Db Int64
 getLastRecordId = Db lastInsertRowId
 
-insertTemplate :: Template -> Db TemplateId
-insertTemplate Template{..} = do
+insertTemplate :: Template -> Db SavedTemplate
+insertTemplate t@Template{..} = do
   executeCommand [r|  INSERT INTO templates (
                        description
                       ,amount
@@ -83,7 +83,8 @@ insertTemplate Template{..} = do
                       ,isDeleted)
                     VALUES(?, ?, ?, ?, ?) |]   
                (_templateDescription, _templateAmount, _templateStartDate, _templateFrequency, _templateIsDeleted) 
-  TemplateId <$> getLastRecordId 
+  templateId <- TemplateId <$> getLastRecordId 
+  pure $ SavedTemplate (templateId, t)
 
 updateTemplate :: TemplateId -> TemplateUpdateRequest -> Db ()
 updateTemplate (TemplateId tId) (TemplateUpdateRequest (des, amt)) = 
@@ -96,8 +97,8 @@ updateTemplate (TemplateId tId) (TemplateUpdateRequest (des, amt)) =
 deleteTemplate :: TemplateId -> Db ()
 deleteTemplate (TemplateId tId) = 
   executeCommand [r| UPDATE templates
-                   SET isDeleted = 1
-                   WHERE templateId = ? |]
+                     SET isDeleted = 1
+                     WHERE templateId = ? |]
                (Only tId)
 
 getAllTemplates :: Db [SavedTemplate]
@@ -105,11 +106,19 @@ getAllTemplates = do
   res <- executeQuery_ "SELECT * FROM templates WHERE isDeleted = 0" :: Db [Only TemplateId :. Template]
   pure $ (\(Only tId :. t) -> SavedTemplate (tId, t)) <$> res 
   
+getTemplateById :: TemplateId -> Db (Maybe SavedTemplate)
+getTemplateById (TemplateId tId) = do
+  res <- executeQuery "SELECT * FROM templates WHERE templateId = ?" (Only tId) :: Db [Only TemplateId :. Template]
+  case res of
+    [Only tId' :. t] -> pure . Just $ SavedTemplate (tId', t)
+    _ -> pure Nothing
+
 getAllInstances :: Db [Instance]
 getAllInstances = executeQuery_ "SELECT * FROM instances"
 
 instance TemplateQuery Db where
   getTemplates = getAllTemplates
+  getTemplate = getTemplateById
 
 instance TemplateCommand Db where
   insert = insertTemplate

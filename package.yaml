@@ -26,7 +26,9 @@ dependencies:
   - raw-strings-qq
   - scientific
   - foreign-store
-
+  - wai-cors
+  - http-types
+  
 ghc-options:
   - -Wall
   - -Werror

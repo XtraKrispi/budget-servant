@@ -13,7 +13,6 @@ getInstances e = convert
         . L.sortBy (\i1 i2 -> compare (_instanceDate i1) (_instanceDate i2))
         . concatMap (uncurry (getInstances' e) . extractSavedTemplate)
 
-
 getInstances' :: Day -> TemplateId -> Template -> [Instance]
 getInstances' e tId Template {..} =
   Instance tId _templateDescription _templateAmount NotActioned

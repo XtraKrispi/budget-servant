@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Init where
 
@@ -7,9 +8,19 @@ import           Api
 import           Servant
 import           Control.Monad.Reader
 import           Network.Wai.Handler.Warp
+import Network.Wai.Middleware.Cors
 import           Types
 import Db (executeDb, createTemplatesTable, createInstancesTable)
-  
+import Network.HTTP.Types
+
+corsPolicy :: CorsResourcePolicy
+corsPolicy = 
+  simpleCorsResourcePolicy {  
+    corsOrigins = Nothing
+  , corsMethods = [methodGet, methodPost,methodHead,methodPut,methodDelete,methodTrace,methodConnect,methodOptions,methodPatch]  
+  , corsRequestHeaders = ["Content-Type"]
+  }
+
 
 runApp :: IO ()
 runApp = do
@@ -24,4 +35,4 @@ nt :: Config -> App a -> Handler a
 nt s x = runReaderT (unAppT x) s
 
 app1 :: Config -> Application
-app1 config = serve api $ hoistServer api (nt config) server
+app1 config = cors ( const $ Just corsPolicy ) $ serve api $ hoistServer api (nt config) server

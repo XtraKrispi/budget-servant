@@ -132,11 +132,14 @@ instance Arbitrary Template where
                        <*> arbitrary
 
 newtype SavedTemplate = SavedTemplate { extractSavedTemplate :: (TemplateId, Template) }
-  deriving (Generic)
+  deriving (Generic, Show)
 
 instance ToJSON SavedTemplate where
   toEncoding (SavedTemplate (tId, t)) =
     pairs ("templateId" .= tId <> "template" .= t)
+
+instance Arbitrary SavedTemplate where
+  arbitrary = curry SavedTemplate <$> arbitrary <*> arbitrary
 
 data Instance = Instance { _instanceOriginalTemplateId :: TemplateId
                          , _instanceDescription        :: Text
@@ -207,9 +210,10 @@ instance FromJSON TemplateUpdateRequest where
 
 class TemplateQuery m where
   getTemplates :: m [SavedTemplate]
+  getTemplate  :: TemplateId -> m (Maybe SavedTemplate) 
 
 class TemplateCommand m where
-  insert :: Template -> m TemplateId
+  insert :: Template -> m SavedTemplate
   update :: TemplateId -> TemplateUpdateRequest -> m ()
   delete :: TemplateId -> m ()
 
