@@ -6,11 +6,12 @@
 
 module Db where
 
-import Database.SQLite.Simple
-import Types
 import Control.Monad.IO.Class
 import Data.Int
+import Data.Time.Calendar
+import Database.SQLite.Simple
 import Text.RawString.QQ
+import Types
 
 newtype Db a = Db { runDb :: Connection -> IO a }
   deriving (Functor)
@@ -65,8 +66,8 @@ createInstancesTable =
                   originalTemplateId INTEGER
                  ,description TEXT
                  ,amount REAL
-                 ,date TEXT
                  ,type TEXT
+                 ,date TEXT
                  ,FOREIGN KEY(originalTemplateId) REFERENCES templates(templateId)) |]
                  
 
@@ -116,6 +117,23 @@ getTemplateById (TemplateId tId) = do
 getAllInstances :: Db [Instance]
 getAllInstances = executeQuery_ "SELECT * FROM instances"
 
+createInstance :: Instance -> Db ()
+createInstance Instance{..} = 
+  executeCommand [r| INSERT INTO instances (
+                      originalTemplateId
+                     ,description
+                     ,amount
+                     ,type
+                     ,date)
+                     VALUES (?, ?, ?, ?, ?) |]
+                 (_instanceOriginalTemplateId, _instanceDescription, _instanceAmount, _instanceType, _instanceDate)                 
+
+deleteInstance :: TemplateId -> Day -> Db ()
+deleteInstance tId d = 
+  executeCommand [r| DELETE FROM instances 
+                     WHERE originalTemplateId = ? AND date = ? |] 
+                 (tId, d)                
+
 instance TemplateQuery Db where
   getTemplates = getAllTemplates
   getTemplate = getTemplateById
@@ -127,3 +145,7 @@ instance TemplateCommand Db where
 
 instance InstanceQuery Db where
   getInstances = getAllInstances
+
+instance InstanceCommand Db where
+  createInstance = Db.createInstance
+  deleteInstance = Db.deleteInstance

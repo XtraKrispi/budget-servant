@@ -9,22 +9,22 @@
 
 module Types where
 
-import           Data.Text                      ( Text )
-import           Data.Time.Calendar
-import           Data.Aeson
-import           GHC.Generics
-import           Test.QuickCheck
-import           Test.QuickCheck.Instances.Time ( )
-import           Test.QuickCheck.Instances.Text ( )
 import           Control.Monad
-import           Utils
 import           Control.Monad.Reader
-import           Servant
-import           Database.SQLite.Simple
-import           Database.SQLite.Simple.ToField
-import           Database.SQLite.Simple.FromField
+import           Data.Aeson
 import           Data.Int
 import           Data.Scientific
+import           Data.Text                      ( Text )
+import           Data.Time.Calendar
+import           Database.SQLite.Simple
+import           Database.SQLite.Simple.FromField
+import           Database.SQLite.Simple.ToField
+import           GHC.Generics
+import           Servant
+import           Test.QuickCheck
+import           Test.QuickCheck.Instances.Text ( )
+import           Test.QuickCheck.Instances.Time ( )
+import           Utils
 
 data Frequency = OneTime | BiWeekly | Monthly
   deriving (Eq, Show, Generic, Bounded, Enum, Read)
@@ -145,11 +145,12 @@ data Instance = Instance { _instanceOriginalTemplateId :: TemplateId
                          , _instanceDescription        :: Text
                          , _instanceAmount             :: Currency
                          , _instanceType               :: InstanceType
-                         , _instanceDate               :: Day }
+                         , _instanceDate               :: Day 
+                         }
   deriving (Show, Generic)
 
 instance Eq Instance where
-  i1 == i2 = (_instanceOriginalTemplateId i1 == _instanceOriginalTemplateId i2) && (_instanceDate i1 == _instanceDate i2) 
+  i1 == i2 = (_instanceOriginalTemplateId i1 == _instanceOriginalTemplateId i2) && (_instanceDate i1 == _instanceDate i2)
 
 instance ToJSON Instance where
   toEncoding =
@@ -163,7 +164,7 @@ instance FromJSON Instance where
              <*> v .: "amount"
              <*> v .: "type"
              <*> v .: "date"
-             
+
   parseJSON _ = mzero
 
 instance Arbitrary Instance where
@@ -182,7 +183,7 @@ instance FromRow Instance where
 
 instance ToRow Instance where
   toRow Instance{..} =
-    toRow (_instanceOriginalTemplateId, _instanceDescription,  _instanceAmount, _instanceDate, _instanceType) 
+    toRow (_instanceOriginalTemplateId, _instanceDescription,  _instanceAmount, _instanceDate, _instanceType)
 
 data DbTracingOptions = NoTracing | ConsoleTracing
 
@@ -198,7 +199,7 @@ newtype AppT m a
 
 type App = AppT Handler
 
-newtype TemplateUpdateRequest = 
+newtype TemplateUpdateRequest =
   TemplateUpdateRequest { unTemplateUpdateRequest :: (Text, Currency) }
   deriving (Generic)
 
@@ -210,7 +211,7 @@ instance FromJSON TemplateUpdateRequest where
 
 class TemplateQuery m where
   getTemplates :: m [SavedTemplate]
-  getTemplate  :: TemplateId -> m (Maybe SavedTemplate) 
+  getTemplate  :: TemplateId -> m (Maybe SavedTemplate)
 
 class TemplateCommand m where
   insert :: Template -> m SavedTemplate
@@ -221,4 +222,5 @@ class InstanceQuery m where
   getInstances :: m [Instance]
 
 class InstanceCommand m where
-  updateInstance :: InstanceType -> Instance -> m ()
+  createInstance :: Instance -> m ()
+  deleteInstance :: TemplateId -> Day -> m ()

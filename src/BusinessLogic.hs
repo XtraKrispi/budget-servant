@@ -1,17 +1,16 @@
 {-# LANGUAGE RecordWildCards #-}
 module BusinessLogic where
 
-import           Types
-import           Data.Time.Calendar
 import qualified Data.List                     as L
+import           Data.Time.Calendar
+import           Types
 
 getInstances :: Day -> [Instance] -> [SavedTemplate] -> [Instance]
-getInstances e = convert  
-  where
-    convert dbInstances =
-          filter (`notElem` dbInstances)
-        . L.sortBy (\i1 i2 -> compare (_instanceDate i1) (_instanceDate i2))
-        . concatMap (uncurry (getInstances' e) . extractSavedTemplate)
+getInstances e dbInstances =
+    L.sortBy (\i1 i2 -> compare (_instanceDate i1) (_instanceDate i2))
+    . (++) dbInstances
+    . filter (`notElem` dbInstances)
+    . concatMap (uncurry (getInstances' e) . extractSavedTemplate)
 
 getInstances' :: Day -> TemplateId -> Template -> [Instance]
 getInstances' e tId Template {..} =

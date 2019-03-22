@@ -4,14 +4,14 @@
 
 module Api where
 
-import           Servant
-import           Types
-import           Data.Time.Calendar
 import qualified BusinessLogic                 as BL
 import           Control.Monad.Reader
-import Db (Db)
-import qualified Db as Db
-import Data.Int
+import           Data.Int
+import           Data.Time.Calendar
+import qualified Db                            as Db
+import           Db                             ( Db )
+import           Servant
+import           Types
 
 type API =  "templates" :> TemplateAPI
        :<|> "instances" :> InstanceAPI
@@ -22,19 +22,23 @@ type TemplateAPI = Get '[JSON] [SavedTemplate]
               :<|> Capture "templateId" Int64 :> ReqBody '[JSON] TemplateUpdateRequest :> Put '[JSON] ()
               :<|> Capture "templateId" Int64 :> Delete '[JSON] ()
 type InstanceAPI = Capture "endDate" Day :> Get '[JSON] [Instance]
+              :<|> ReqBody '[JSON] Instance :> Post '[JSON] ()
+              :<|> Capture "templateId" Int64 :> Capture "date" Day :> Delete '[JSON] ()
 
 server :: ServerT API App
 server = templateServer :<|> instanceServer
 
 templateServer :: ServerT TemplateAPI App
-templateServer = Api.getTemplates
-            :<|> Api.getTemplate
-            :<|> insertTemplate 
-            :<|> updateTemplate
-            :<|> deleteTemplate
+templateServer =
+  Api.getTemplates
+    :<|> Api.getTemplate
+    :<|> insertTemplate
+    :<|> updateTemplate
+    :<|> deleteTemplate
 
 instanceServer :: ServerT InstanceAPI App
-instanceServer = Api.getInstances
+instanceServer =
+  Api.getInstances :<|> Api.createInstance :<|> Api.deleteInstance
 
 getTemplates :: App [SavedTemplate]
 getTemplates = runDbCommand Db.getAllTemplates
@@ -52,7 +56,14 @@ deleteTemplate :: Int64 -> App ()
 deleteTemplate = runDbCommand . Db.deleteTemplate . TemplateId
 
 getInstances :: Day -> App [Instance]
-getInstances e = runDbCommand $ BL.getInstances e <$> Db.getAllInstances <*> Db.getAllTemplates 
+getInstances e =
+  runDbCommand $ BL.getInstances e <$> Db.getAllInstances <*> Db.getAllTemplates
+
+createInstance :: Instance -> App ()
+createInstance = runDbCommand . Db.createInstance
+
+deleteInstance :: Int64 -> Day -> App ()
+deleteInstance tId d = runDbCommand $ Db.deleteInstance (TemplateId tId) d
 
 runDbCommand :: Db a -> App a
 runDbCommand db = asks _configDb >>= Db.executeDb db

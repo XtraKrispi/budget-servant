@@ -16,18 +16,18 @@
 
 module DevelMain where
 
-import           Prelude
-
-import           Control.Concurrent       (MVar, ThreadId, forkIO, killThread,
+import Control.Concurrent       (MVar, ThreadId, forkIO, killThread,
                                            newEmptyMVar, putMVar, takeMVar)
-import           Control.Exception        (finally)
-import           Control.Monad            ((>=>))
-import           Data.IORef               (IORef, newIORef, readIORef,
+
+import Control.Exception        (finally)
+import Control.Monad            ((>=>))
+import Data.IORef               (IORef, newIORef, readIORef,
                                            writeIORef)
-import           Foreign.Store            (Store (..), lookupStore, readStore,
+import Foreign.Store            (Store (..), lookupStore, readStore,
                                            storeAction, withStore)
-import           GHC.Word                 (Word32)
-import           Init                     (runApp)
+import GHC.Word                 (Word32)
+import Init                     (runApp)
+import Prelude
 
 -- | Start or restart the server.
 -- newStore is from foreign-store.

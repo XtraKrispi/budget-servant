@@ -4,14 +4,14 @@
 
 module Init where
 
-import           Api
-import           Servant
-import           Control.Monad.Reader
-import           Network.Wai.Handler.Warp
-import Network.Wai.Middleware.Cors
-import           Types
+import Api
+import Control.Monad.Reader
 import Db (executeDb, createTemplatesTable, createInstancesTable)
 import Network.HTTP.Types
+import Network.Wai.Handler.Warp
+import Network.Wai.Middleware.Cors
+import Servant
+import Types
 
 corsPolicy :: CorsResourcePolicy
 corsPolicy = 
