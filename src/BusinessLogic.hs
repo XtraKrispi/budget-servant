@@ -8,6 +8,7 @@ import           Types
 getInstances :: Day -> [Instance] -> [SavedTemplate] -> [Instance]
 getInstances e dbInstances =
     L.sortBy (\i1 i2 -> compare (_instanceDate i1) (_instanceDate i2))
+    . filter ((e >=) . _instanceDate)
     . (++) dbInstances
     . filter (`notElem` dbInstances)
     . concatMap (uncurry (getInstances' e) . extractSavedTemplate)
