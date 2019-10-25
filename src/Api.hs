@@ -10,6 +10,8 @@ import           Servant
 import           Types
 import Capability
 
+-- TODO: Add Auth with JWT and multi tenant: https://github.com/haskell-servant/servant-auth
+
 type API =  "templates" :> TemplateAPI
        :<|> "instances" :> InstanceAPI
 
