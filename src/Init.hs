@@ -25,7 +25,7 @@ corsPolicy =
 runApp :: IO ()
 runApp = do
   let config = Config (DbConfiguration "budget.db" ConsoleTracing)
-  executeDb (createTemplatesTable >> createInstancesTable) (_configDb config)
+  executeDb (_configDb config) (createTemplatesTable >> createInstancesTable)
   run 8081 (app1 config)
 
 api :: Proxy API

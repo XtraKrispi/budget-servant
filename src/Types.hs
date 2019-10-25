@@ -93,6 +93,11 @@ instance ToField TemplateId where
 instance Arbitrary TemplateId where
   arbitrary = TemplateId <$> arbitrary
 
+instance FromHttpApiData TemplateId where
+  parseUrlPiece = (TemplateId <$>) . parseUrlPiece
+  parseQueryParam = (TemplateId <$>) . parseQueryParam
+  parseHeader = (TemplateId <$>) . parseHeader
+
 data Template = Template { _templateDescription :: Text
                          , _templateAmount      :: Currency
                          , _templateStartDate   :: Day
@@ -195,7 +200,7 @@ data Config = Config { _configDb :: DbConfiguration }
 newtype AppT m a
    = AppT
    { unAppT :: ReaderT Config m a
-   } deriving (Functor, Applicative, Monad, MonadReader Config, MonadIO)
+   } deriving (Functor, Applicative, Monad, MonadReader Config, MonadIO, MonadTrans)
 
 type App = AppT Handler
 
@@ -208,19 +213,3 @@ instance FromJSON TemplateUpdateRequest where
        curry TemplateUpdateRequest <$> v .: "description"
                                    <*> v .: "amount"
   parseJSON _ = mzero
-
-class TemplateQuery m where
-  getTemplates :: m [SavedTemplate]
-  getTemplate  :: TemplateId -> m (Maybe SavedTemplate)
-
-class TemplateCommand m where
-  insert :: Template -> m SavedTemplate
-  update :: TemplateId -> TemplateUpdateRequest -> m ()
-  delete :: TemplateId -> m ()
-
-class InstanceQuery m where
-  getInstances :: m [Instance]
-
-class InstanceCommand m where
-  createInstance :: Instance -> m ()
-  deleteInstance :: TemplateId -> Day -> m ()

@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.0.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2ef27f823ef281679ef8aeb85e30af8cae8615f498a5e445fc338cf7be2a89b6
+-- hash: 02f4ea47e909ae58d5e0e8fc80a60ff37d4056966352958824553ad0372aa6fb
 
 name:           budget-server
 version:        0.1.0.0
@@ -23,6 +23,7 @@ library
   exposed-modules:
       Api
       BusinessLogic
+      Capability
       Db
       DevelMain
       Init

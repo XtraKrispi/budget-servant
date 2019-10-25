@@ -29,8 +29,8 @@ instance Monad Db where
                      runDb (fn res) conn
 
 -- Helper functions                             
-executeDb :: MonadIO m => Db a -> DbConfiguration -> m a
-executeDb db (DbConfiguration path t) = 
+executeDb :: MonadIO m => DbConfiguration -> Db a -> m a
+executeDb (DbConfiguration path t) db = 
   liftIO $ withConnection path (\conn -> withTransaction conn (runDb (tracing t >> db) conn))
 
 executeQuery_ :: FromRow a => Query -> Db [a]
@@ -132,20 +132,4 @@ deleteInstance :: TemplateId -> Day -> Db ()
 deleteInstance tId d = 
   executeCommand [r| DELETE FROM instances 
                      WHERE originalTemplateId = ? AND date = ? |] 
-                 (tId, d)                
-
-instance TemplateQuery Db where
-  getTemplates = getAllTemplates
-  getTemplate = getTemplateById
-
-instance TemplateCommand Db where
-  insert = insertTemplate
-  update = updateTemplate
-  delete = deleteTemplate
-
-instance InstanceQuery Db where
-  getInstances = getAllInstances
-
-instance InstanceCommand Db where
-  createInstance = Db.createInstance
-  deleteInstance = Db.deleteInstance
+                 (tId, d)
